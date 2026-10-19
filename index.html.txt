@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>일일 지출 내역 by cho.s.w</title>
+    <link rel="manifest" href="data:application/manifest+json;utf8,{%22name%22:%22나의%20개인%20가계부%22,%22short_name%22:%22가계부%22,%22start_url%22:%22.%22,%22display%22:%22standalone%22,%22background_color%22:%22#105948%22,%22theme_color%22:%22#105948%22}">
+    <style>
+        :root {
+            --primary-color: #105948;
+            --primary-hover: #0c4337;
+            --bg-color: #f4f6f8;
+            --card-bg: #ffffff;
+            --text-color: #333333;
+            --border-color: #e1e4e8;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            padding-bottom: 30px;
+        }
+
+        header {
+            background-color: var(--primary-color);
+            color: white;
+            text-align: center;
+            padding: 20px 15px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        header h1 {
+            font-size: 1.4rem;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+
+        header p {
+            font-size: 0.85rem;
+            opacity: 0.85;
+        }
+
+        .container {
+            max-width: 500px;
+            margin: 15px auto;
+            padding: 0 12px;
+        }
+
+        .summary-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .summary-card {
+            background: var(--card-bg);
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+
+        .summary-card label {
+            font-size: 0.75rem;
+            color: #666;
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        .summary-card .amount {
+            font-size: 1.1rem;
+            font-weight: bold;
+            color: var(--primary-color);
+        }
+
+        .card {
+            background: var(--card-bg);
+            padding: 18px;
+            border-radius: 10px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            margin-bottom: 15px;
+        }
+
+        .card-title {
+            font-size: 1rem;
+            font-weight: bold;
+            margin-bottom: 12px;
+            color: #222;
+            border-bottom: 2px solid var(--bg-color);
+            padding-bottom: 8px;
+        }
+
+        .form-group {
+            margin-bottom: 12px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 0.8rem;
+            font-weight: 600;
+            margin-bottom: 4px;
+            color: #555;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            font-size: 0.95rem;
+            outline: none;
+        }
+
+        .form-control:focus {
+            border-color: var(--primary-color);
+        }
+
+        textarea.form-control {
+            resize: vertical;
+            height: 60px;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 8px;
+            margin-top: 15px;
+        }
+
+        .btn {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 6px;
+            font-size: 0.95rem;
+            font-weight: bold;
+            cursor: pointer;
+            text-align: center;
+        }
+
+        .btn-primary {
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+        .btn-secondary {
+            background-color: #e2e8f0;
+            color: #4a5568;
+        }
+
+        .btn-outline {
+            background: transparent;
+            border: 1px solid var(--border-color);
+            color: #555;
+            font-size: 0.8rem;
+            padding: 8px;
+        }
+
+        .filter-row {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 15px;
+        }
+
+        .expense-list {
+            list-style: none;
+        }
+
+        .expense-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .expense-info .date {
+            font-size: 0.75rem;
+            color: #888;
+        }
+
+        .expense-info .usage {
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: #333;
+            margin-top: 2px;
+        }
+
+        .expense-info .note {
+            font-size: 0.75rem;
+            color: #666;
+            margin-top: 2px;
+        }
+
+        .expense-amount-wrap {
+            text-align: right;
+        }
+
+        .expense-amount {
+            font-size: 1rem;
+            font-weight: bold;
+            color: #e53e3e;
+        }
+
+        .daily-cum {
+            font-size: 0.75rem;
+            color: var(--primary-color);
+            margin-top: 2px;
+        }
+
+        .btn-delete {
+            color: #a0aec0;
+            background: none;
+            border: none;
+            margin-left: 10px;
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+
+        .empty-msg {
+            text-align: center;
+            padding: 20px;
+            color: #a0aec0;
+            font-size: 0.85rem;
+        }
+
+        footer {
+            text-align: center;
+            font-size: 0.75rem;
+            color: #a0aec0;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>■ 나의 개인 가계부</h1>
+        <p>매일 기록하고, 지출 누계를 한눈에 확인하세요.</p>
+    </header>
+
+    <div class="container">
+        <div class="summary-grid">
+            <div class="summary-card">
+                <label>선택일 지출 총액</label>
+                <div class="amount" id="selectedDailyTotal">0원</div>
+            </div>
+            <div class="summary-card">
+                <label>전체 누적 지출</label>
+                <div class="amount" id="grandTotal">0원</div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-title">지출 내역 입력</div>
+            <form id="expenseForm">
+                <input type="hidden" id="editIndex" value="-1">
+                <div class="form-group">
+                    <label for="date">날짜</label>
+                    <input type="date" id="date" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label for="amount">금액 (원)</label>
+                    <input type="number" id="amount" class="form-control" placeholder="예: 15000" required>
+                </div>
+                <div class="form-group">
+                    <label for="usage">사용처</label>
+                    <input type="text" id="usage" class="form-control" placeholder="예: 점심 식사, 택시, 주유소" required>
+                </div>
+                <div class="form-group">
+                    <label for="note">기타 항목 / 메모</label>
+                    <textarea id="note" class="form-control" placeholder="예: 신용카드, 현금, 추가 메모"></textarea>
+                </div>
+                <div class="btn-group">
+                    <button type="submit" class="btn btn-primary" id="saveBtn">+ 지출 내역 저장</button>
+                    <button type="button" class="btn btn-secondary" id="cancelBtn" style="display:none;" onclick="resetForm()">수정 취소</button>
+                </div>
+            </form>
+        </div>
+
+        <div class="card">
+            <div class="card-title">지출 내역 조회</div>
+            <div class="filter-row">
+                <input type="month" id="filterMonth" class="form-control">
+                <input type="date" id="filterDate" class="form-control">
+            </div>
+            
+            <ul class="expense-list" id="expenseList"></ul>
+
+            <div class="btn-group" style="margin-top: 15px;">
+                <button class="btn btn-outline" onclick="exportData()">내역 엑셀용 저장</button>
+                <button class="btn btn-outline" onclick="exportJSON()">백업 파일 저장</button>
+                <button class="btn btn-outline" onclick="document.getElementById('importFile').click()">백업 불러오기</button>
+                <input type="file" id="importFile" accept=".json" style="display:none;" onchange="importJSON(event)">
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        일일 지출 내역 by cho.s.w
+    </footer>
+
+    <script>
+        const today = new Date().toISOString().split('T')[0];
+        document.getElementById('date').value = today;
+        document.getElementById('filterDate').value = today;
+
+        let expenses = JSON.parse(localStorage.getItem('expenses_chosw') || '[]');
+
+        function saveData() {
+            localStorage.setItem('expenses_chosw', JSON.stringify(expenses));
+            render();
+        }
+
+        document.getElementById('expenseForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const date = document.getElementById('date').value;
+            const amount = parseInt(document.getElementById('amount').value, 10);
+            const usage = document.getElementById('usage').value.trim();
+            const note = document.getElementById('note').value.trim();
+            const editIndex = parseInt(document.getElementById('editIndex').value, 10);
+
+            if (editIndex >= 0) {
+                expenses[editIndex] = { date, amount, usage, note };
+            } else {
+                expenses.push({ date, amount, usage, note });
+            }
+
+            expenses.sort((a, b) => new Date(b.date) - new Date(a.date));
+            resetForm();
+            saveData();
+        });
+
+        function resetForm() {
+            document.getElementById('expenseForm').reset();
+            document.getElementById('date').value = today;
+            document.getElementById('editIndex').value = "-1";
+            document.getElementById('saveBtn').innerText = "+ 지출 내역 저장";
+            document.getElementById('cancelBtn').style.display = "none";
+        }
+
+        function editExpense(index) {
+            const item = expenses[index];
+            document.getElementById('date').value = item.date;
+            document.getElementById('amount').value = item.amount;
+            document.getElementById('usage').value = item.usage;
+            document.getElementById('note').value = item.note || '';
+            document.getElementById('editIndex').value = index;
+            document.getElementById('saveBtn').innerText = "수정 완료";
+            document.getElementById('cancelBtn').style.display = "block";
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function deleteExpense(index) {
+            if (confirm('이 지출 내역을 삭제하시겠습니까?')) {
+                expenses.splice(index, 1);
+                saveData();
+            }
+        }
+
+        function render() {
+            const filterDateVal = document.getElementById('filterDate').value;
+            const filterMonthVal = document.getElementById('filterMonth').value;
+            const listEl = document.getElementById('expenseList');
+            listEl.innerHTML = '';
+
+            const dailyTotals = {};
+            let totalAll = 0;
+
+            expenses.forEach(item => {
+                dailyTotals[item.date] = (dailyTotals[item.date] || 0) + item.amount;
+                totalAll += item.amount;
+            });
+
+            document.getElementById('grandTotal').innerText = totalAll.toLocaleString() + '원';
+
+            let filtered = expenses.filter(item => {
+                if (filterDateVal) return item.date === filterDateVal;
+                if (filterMonthVal) return item.date.startsWith(filterMonthVal);
+                return true;
+            });
+
+            let selectedDailySum = 0;
+            if (filterDateVal && dailyTotals[filterDateVal]) {
+                selectedDailySum = dailyTotals[filterDateVal];
+            } else {
+                selectedDailySum = filtered.reduce((acc, cur) => acc + cur.amount, 0);
+            }
+            document.getElementById('selectedDailyTotal').innerText = selectedDailySum.toLocaleString() + '원';
+
+            if (filtered.length === 0) {
+                listEl.innerHTML = '<div class="empty-msg">조건에 맞는 지출 내역이 없습니다.</div>';
+                return;
+            }
+
+            filtered.forEach((item) => {
+                const originalIndex = expenses.indexOf(item);
+                const li = document.createElement('li');
+                li.className = 'expense-item';
+                li.innerHTML = `
+                    <div class="expense-info">
+                        <div class="date">${item.date}</div>
+                        <div class="usage">${escapeHtml(item.usage)}</div>
+                        ${item.note ? `<div class="note">${escapeHtml(item.note)}</div>` : ''}
+                    </div>
+                    <div class="expense-amount-wrap">
+                        <div class="expense-amount">-${item.amount.toLocaleString()}원</div>
+                        <div class="daily-cum">일일 누계: ${dailyTotals[item.date].toLocaleString()}원</div>
+                    </div>
+                    <div>
+                        <button class="btn-delete" onclick="editExpense(${originalIndex})">✎</button>
+                        <button class="btn-delete" onclick="deleteExpense(${originalIndex})">✕</button>
+                    </div>
+                `;
+                listEl.appendChild(li);
+            });
+        }
+
+        function escapeHtml(text) {
+            return text.replace(/[&<>"']/g, function(m) {
+                return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[m];
+            });
+        }
+
+        document.getElementById('filterDate').addEventListener('change', function() {
+            if(this.value) document.getElementById('filterMonth').value = '';
+            render();
+        });
+
+        document.getElementById('filterMonth').addEventListener('change', function() {
+            if(this.value) document.getElementById('filterDate').value = '';
+            render();
+        });
+
+        function exportJSON() {
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(expenses, null, 2));
+            const downloadAnchor = document.createElement('a');
+            downloadAnchor.setAttribute("href", dataStr);
+            downloadAnchor.setAttribute("download", `가계부_백업_${today}.json`);
+            document.body.appendChild(downloadAnchor);
+            downloadAnchor.click();
+            downloadAnchor.remove();
+        }
+
+        function importJSON(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    if (Array.isArray(data)) {
+                        expenses = data;
+                        saveData();
+                        alert('백업 데이터를 성공적으로 불러왔습니다.');
+                    }
+                } catch(err) {
+                    alert('올바른 백업 파일(JSON)이 아닙니다.');
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        function exportData() {
+            let csvContent = "\uFEFF날짜,금액,사용처,기타\n";
+            expenses.forEach(e => {
+                csvContent += `"${e.date}",${e.amount},"${e.usage.replace(/"/g, '""')}","${(e.note||'').replace(/"/g, '""')}"\n`;
+            });
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = `지출내역_cho.s.w_${today}.csv`;
+            link.click();
+        }
+
+        render();
+    </script>
+</body>
+</html>

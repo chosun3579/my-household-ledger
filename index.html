@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<meta name="theme-color" content="#176b57">
+<meta name="description" content="날짜별 지출과 일일 누계를 기록하는 개인 가계부">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<title>나의 가계부</title>
+<style>
+:root{--green:#176b57;--pale:#e8f4ef;--bg:#f5f7f6;--ink:#17231f;--muted:#68756f;--line:#e0e7e3;--red:#b42318}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,"Noto Sans KR",sans-serif;font-size:16px}
+header{background:var(--green);color:#fff;padding:22px 18px 25px;border-radius:0 0 24px 24px}
+.head{max-width:720px;margin:auto}h1{font-size:24px;margin:0 0 5px}header p{margin:0;color:#d8eee5;font-size:13px}
+main{max-width:720px;margin:auto;padding:16px 14px 40px}.summary{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:-8px;margin-bottom:16px}
+.stat,.panel{background:#fff;border:1px solid var(--line);border-radius:16px;padding:16px;box-shadow:0 2px 8px #193c2d08}
+.stat small{color:var(--muted);display:block;margin-bottom:7px}.stat strong{font-size:clamp(19px,5vw,25px);letter-spacing:-.6px;overflow-wrap:anywhere}.stat .sub{font-size:12px;color:var(--muted);margin-top:5px}
+.panel{margin-bottom:14px}.panel h2{font-size:18px;margin:0 0 14px}
+label{font-size:13px;font-weight:650;display:block;margin:0 0 6px}input,textarea,select{font:inherit;width:100%;border:1px solid #cfd9d4;border-radius:10px;padding:12px;background:#fff;color:var(--ink);min-height:46px}
+textarea{resize:vertical;min-height:70px}.field{margin-bottom:12px}.two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+button{font:inherit;border:0;border-radius:11px;padding:12px 14px;font-weight:700;cursor:pointer;min-height:44px}
+.primary{background:var(--green);color:white;width:100%}.secondary{background:var(--pale);color:var(--green)}.danger{background:#fff0ef;color:var(--red);padding:7px 10px;min-height:34px;font-size:13px}
+.tools{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.tools button{flex:1}
+.note{font-size:12px;color:var(--muted);line-height:1.5;margin:10px 0 0}
+.list{display:flex;flex-direction:column;gap:9px}.entry{border:1px solid var(--line);border-radius:12px;padding:12px;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;background:#fff}
+.entry .date{font-size:12px;color:var(--muted);margin-bottom:3px}.entry .usage{font-weight:750;overflow-wrap:anywhere}.entry .other{font-size:12px;color:var(--muted);margin-top:4px;overflow-wrap:anywhere}.entry .money{font-weight:800;text-align:right;white-space:nowrap}.entry .actions{display:flex;justify-content:flex-end;margin-top:7px}
+.empty{text-align:center;color:var(--muted);padding:24px 8px;font-size:14px}
+.totalline{display:flex;justify-content:space-between;align-items:center;background:var(--pale);padding:13px;border-radius:12px;margin:12px 0;font-size:14px}.totalline strong{font-size:18px;color:var(--green)}
+footer{text-align:center;color:var(--muted);font-size:11px;padding:5px 10px 20px}
+@media(min-width:600px){main{padding-top:22px}.entry{padding:14px}}
+</style>
+</head>
+<body>
+<header><div class="head"><h1>📒 나의 개인 가계부</h1><p>매일 기록하고, 지출 누계를 한눈에 확인하세요.</p></div></header>
+<main>
+  <section class="summary">
+    <div class="stat"><small>선택한 날짜 지출</small><strong id="dailyTotal">0원</strong><div class="sub" id="dailyCount">0건 기록</div></div>
+    <div class="stat"><small>선택한 달 지출</small><strong id="monthTotal">0원</strong><div class="sub" id="monthCount">0건 기록</div></div>
+  </section>
+  <section class="panel">
+    <h2 id="formTitle">지출 내역 입력</h2>
+    <form id="entryForm">
+      <div class="field"><label for="date">날짜</label><input id="date" type="date" required></div>
+      <div class="field"><label for="amount">금액 (원)</label><input id="amount" type="number" min="1" step="1" inputmode="numeric" placeholder="예: 15000" required></div>
+      <div class="field"><label for="usage">사용처</label><input id="usage" maxlength="100" placeholder="예: 점심 식사, 마트, 주유소" required></div>
+      <div class="field"><label for="other">기타 항목 / 메모</label><textarea id="other" maxlength="500" placeholder="예: 신용카드, 현금, 추가 메모"></textarea></div>
+      <button class="primary" id="saveBtn" type="submit">＋ 지출 내역 저장</button>
+      <div class="tools" id="editTools" hidden><button type="button" class="secondary" id="cancelEdit">수정 취소</button></div>
+    </form>
+    <p class="note">입력한 내용은 이 브라우저의 기기에 저장됩니다. 앱 데이터나 브라우저 저장 공간을 지우기 전에 백업 파일을 내려받아 두세요.</p>
+  </section>
+  <section class="panel">
+    <h2>지출 내역 조회</h2>
+    <div class="two">
+      <div class="field"><label for="filterMonth">월별 조회</label><input id="filterMonth" type="month"></div>
+      <div class="field"><label for="filterDate">날짜별 조회</label><input id="filterDate" type="date"></div>
+    </div>
+    <div class="totalline"><span>조회 결과 합계</span><strong id="filteredTotal">0원</strong></div>
+    <div class="list" id="entries"><div class="empty">아직 지출 내역이 없습니다.<br>위에서 첫 지출을 입력해 보세요.</div></div>
+    <div class="tools">
+      <button class="secondary" id="exportCsv" type="button">내역 엑셀용 저장</button>
+      <button class="secondary" id="backup" type="button">백업 파일 저장</button>
+      <button class="secondary" id="restoreBtn" type="button">백업 불러오기</button>
+      <input id="restoreFile" type="file" accept=".json,application/json" hidden>
+    </div>
+  </section>
+</main>
+<footer>개인용 가계부 · 자료는 이 기기의 브라우저에 저장됩니다.</footer>
+<script>
+const $=id=>document.getElementById(id);
+const KEY='simpleHouseholdLedgerV1';
+const now=new Date();
+const localDate=d=>{const x=new Date(d.getTime()-d.getTimezoneOffset()*60000);return x.toISOString().slice(0,10)};
+const today=localDate(now);
+$('date').value=today;$('filterDate').value='';$('filterMonth').value=today.slice(0,7);
+let records=[];let editingId=null;
+try{records=JSON.parse(localStorage.getItem(KEY)||'[]');if(!Array.isArray(records))records=[]}catch(e){records=[]}
+const money=n=>Number(n).toLocaleString('ko-KR')+'원';
+const save=()=>localStorage.setItem(KEY,JSON.stringify(records));
+const escapeHtml=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function render(){
+ const date=$('date').value||today, month=date.slice(0,7);
+ const dayRows=records.filter(r=>r.date===date), monthRows=records.filter(r=>r.date.startsWith(month));
+ $('dailyTotal').textContent=money(dayRows.reduce((s,r)=>s+r.amount,0));$('dailyCount').textContent=dayRows.length+'건 기록';
+ $('monthTotal').textContent=money(monthRows.reduce((s,r)=>s+r.amount,0));$('monthCount').textContent=monthRows.length+'건 기록';
+ const fd=$('filterDate').value, fm=$('filterMonth').value;
+ let rows=records.filter(r=>(!fd||r.date===fd)&&(!fm||r.date.startsWith(fm))).sort((a,b)=>b.date.localeCompare(a.date)||b.id-a.id);
+ $('filteredTotal').textContent=money(rows.reduce((s,r)=>s+r.amount,0));
+ $('entries').innerHTML=rows.length?rows.map(r=>`<article class="entry"><div><div class="date">${escapeHtml(r.date)}</div><div class="usage">${escapeHtml(r.usage)}</div>${r.other?`<div class="other">${escapeHtml(r.other)}</div>`:''}</div><div><div class="money">${money(r.amount)}</div><div class="actions"><button class="secondary" data-edit="${r.id}" type="button">수정</button> <button class="danger" data-delete="${r.id}" type="button">삭제</button></div></div></article>`).join(''):'<div class="empty">조건에 맞는 지출 내역이 없습니다.</div>';
+}
+$('entryForm').addEventListener('submit',e=>{
+ e.preventDefault();
+ const amount=Number($('amount').value), date=$('date').value, usage=$('usage').value.trim();
+ if(!date||!Number.isSafeInteger(amount)||amount<=0||!usage){alert('날짜, 1원 이상의 금액, 사용처를 정확히 입력해 주세요.');return}
+ if(editingId!==null){records=records.map(r=>r.id===editingId?{...r,date,amount,usage,other:$('other').value.trim()}:r)}
+ else records.push({id:Date.now(),date,amount,usage,other:$('other').value.trim()});
+ save();$('filterDate').value='';$('filterMonth').value=date.slice(0,7);resetForm(false);render();
+});
+function resetForm(resetDate=true){editingId=null;$('formTitle').textContent='지출 내역 입력';$('saveBtn').textContent='＋ 지출 내역 저장';$('editTools').hidden=true;$('amount').value='';$('usage').value='';$('other').value='';if(resetDate)$('date').value=today}
+$('cancelEdit').addEventListener('click',()=>resetForm());
+$('entries').addEventListener('click',e=>{
+ const edit=e.target.closest('[data-edit]'), del=e.target.closest('[data-delete]');
+ if(edit){const r=records.find(x=>x.id===Number(edit.dataset.edit));if(!r)return;editingId=r.id;$('date').value=r.date;$('amount').value=r.amount;$('usage').value=r.usage;$('other').value=r.other||'';$('formTitle').textContent='지출 내역 수정';$('saveBtn').textContent='수정 내용 저장';$('editTools').hidden=false;window.scrollTo({top:0,behavior:'smooth'})}
+ if(del){const r=records.find(x=>x.id===Number(del.dataset.delete));if(r&&confirm(`${r.date} ${r.usage} ${money(r.amount)} 내역을 삭제할까요?`)){records=records.filter(x=>x.id!==r.id);save();render()}}
+});
+$('date').addEventListener('change',render);$('filterDate').addEventListener('change',render);$('filterMonth').addEventListener('change',render);
+function download(blob,name){const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000)}
+$('exportCsv').addEventListener('click',()=>{
+ const fd=$('filterDate').value,fm=$('filterMonth').value;
+ const rows=records.filter(r=>(!fd||r.date===fd)&&(!fm||r.date.startsWith(fm))).sort((a,b)=>a.date.localeCompare(b.date)||a.id-b.id);
+ const cell=v=>'"'+String(v??'').replace(/"/g,'""')+'"';
+ const csv='\uFEFF'+[['날짜','금액(원)','사용처','기타 항목'],...rows.map(r=>[r.date,r.amount,r.usage,r.other])].map(row=>row.map(cell).join(',')).join('\r\n');
+ download(new Blob([csv],{type:'text/csv;charset=utf-8;'}),`가계부_${fm||'전체'}.csv`);
+});
+$('backup').addEventListener('click',()=>download(new Blob([JSON.stringify(records,null,2)],{type:'application/json'}),`가계부_백업_${today}.json`));
+$('restoreBtn').addEventListener('click',()=>$('restoreFile').click());
+$('restoreFile').addEventListener('change',async e=>{const f=e.target.files[0];if(!f)return;try{const data=JSON.parse(await f.text());if(!Array.isArray(data)||!data.every(r=>r&&typeof r.date==='string'&&Number.isFinite(Number(r.amount))&&typeof r.usage==='string'))throw Error();if(confirm('백업을 불러오면 현재 내역이 백업 내용으로 교체됩니다. 계속할까요?')){records=data.map((r,i)=>({id:Number(r.id)||Date.now()+i,date:r.date,amount:Number(r.amount),usage:r.usage,other:String(r.other||'')}));save();render();alert('백업을 불러왔습니다.')}}catch(err){alert('올바른 가계부 백업 파일이 아닙니다.')}e.target.value=''});
+if('serviceWorker' in navigator && location.protocol.startsWith('http'))navigator.serviceWorker.register('./sw.js').catch(()=>{});
+render();
+</script>
+</body>
+</html>
