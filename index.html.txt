@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>일일 지출 내역 by cho.s.w</title>
+    <title>일일 지출 내역 by chosungwan.</title>
     <link rel="manifest" href="data:application/manifest+json;utf8,{%22name%22:%22나의%20개인%20가계부%22,%22short_name%22:%22가계부%22,%22start_url%22:%22.%22,%22display%22:%22standalone%22,%22background_color%22:%22#105948%22,%22theme_color%22:%22#105948%22}">
     <style>
         :root {
@@ -242,7 +242,7 @@
 
     <header>
         <h1>■ 나의 개인 가계부</h1>
-        <p>매일 기록하고, 지출 누계를 한눈에 확인하세요.</p>
+        <p>현명한 소비 습관을 기르자!.</p>
     </header>
 
     <div class="container">
